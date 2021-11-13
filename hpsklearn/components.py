@@ -1,3 +1,4 @@
+import catboost
 import numpy as np
 import sklearn.svm
 import sklearn.ensemble
@@ -25,6 +26,12 @@ try:
     import lightgbm
 except ImportError:
     lightgbm = None
+##########################################
+##==== Wrappers for catboost module ====##
+##########################################
+@scope.define
+def catboost_class(*args, **kwargs):
+    return catboost.CatBoostClassifier(*args, **kwargs)
 
 ##########################################
 ##==== Wrappers for sklearn modules ====##
@@ -809,6 +816,44 @@ def random_forest_regression(name, criterion='mse', **kwargs):
     hp_space = _trees_hp_space(_name, **kwargs)
     hp_space['criterion'] = criterion
     return scope.sklearn_RandomForestRegressor(**hp_space)
+
+####################################################################
+##==== Catboost Classifier hyperparameters search space ====##
+####################################################################
+def _catboost_class_hp_space(
+    name_func,
+    learning_rate=None,
+    random_state=None):
+    '''Generate Catboost hyperparameters search space
+    '''
+    hp_space = dict(
+        #currently using adaboost learning rate
+        learning_rate=(_ada_boost_learning_rate(name_func('learning_rate'))
+                       if learning_rate is None else learning_rate),
+        random_state=_random_state(name_func('rstate'), random_state)
+    )
+    return hp_space
+
+#############################################################
+##==== Catboost classifier constructors====##
+#############################################################
+def catboost(name, criterion=None, **kwargs):
+    '''
+    Return a pyll graph with hyperparamters that will construct
+    a catboost.CatBoostClassifier model.
+
+    Args:
+
+
+    See help(hpsklearn.components._trees_hp_space) for info on additional
+    available random forest/extra trees arguments.
+    '''
+    def _name(msg):
+        return '%s.%s_%s' % (name, 'rfc', msg)
+
+    hp_space = _catboost_class_hp_space(_name, **kwargs)
+    return scope.catboost_class(**hp_space)
+
 
 
 ###################################################
