@@ -17,7 +17,7 @@ setup(
     packages = find_packages(),
     scripts = [],
     url = 'http://hyperopt.github.com/hyperopt-sklearn/',
-    download_url = 'https://github.com/hyperopt/hyperopt-sklearn/archive/0.0.3.tar.gz',
+    download_url = 'https://github.com/ktark/hyperopt-sklearn/dist/hpsklearn-0.0.3.tar.gz',
     author = 'James Bergstra',
     author_email = 'anon@anon.com',
     description = 'Hyperparameter Optimization for sklearn',
@@ -46,6 +46,7 @@ setup(
         'numpy',
         'scikit-learn',
         'scipy',
+        'catboost'
     ],
     extras_require = {
         'xgboost':  ['xgboost==0.6a2'],
