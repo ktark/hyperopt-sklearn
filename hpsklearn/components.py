@@ -820,17 +820,31 @@ def random_forest_regression(name, criterion='mse', **kwargs):
 ####################################################################
 ##==== Catboost Classifier hyperparameters search space ====##
 ####################################################################
+
+def _catboost_depth(name):
+    return hp.pchoice(name, [
+        (0.2, 6),
+        (0.2, 7),
+        (0.2, 8),
+        (0.2, 9),
+        (0.2, 10)
+
+    ])
+
 def _catboost_class_hp_space(
     name_func,
     learning_rate=None,
-    random_state=None):
+    random_state=None,
+    depth=6):
     '''Generate Catboost hyperparameters search space
     '''
     hp_space = dict(
         #currently using adaboost learning rate
         learning_rate=(_ada_boost_learning_rate(name_func('learning_rate'))
                        if learning_rate is None else learning_rate),
-        random_state=_random_state(name_func('rstate'), random_state)
+        random_state=_random_state(name_func('rstate'), random_state),
+        depth=_catboost_depth(name_func('depth'))
+
     )
     return hp_space
 
