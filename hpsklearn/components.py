@@ -837,7 +837,7 @@ def _catboost_class_hp_space(
 #############################################################
 ##==== Catboost classifier constructors====##
 #############################################################
-def catboost(name,  **kwargs):
+def catboost_classifier(name,  **kwargs):
     '''
     Return a pyll graph with hyperparamters that will construct
     a catboost.CatBoostClassifier model.
@@ -849,7 +849,7 @@ def catboost(name,  **kwargs):
     available random forest/extra trees arguments.
     '''
     def _name(msg):
-        return '%s.%s_%s' % (name, 'catboost', msg)
+        return '%s.%s_%s' % (name, 'catboost_classifier', msg)
 
     hp_space = _catboost_class_hp_space(_name, **kwargs)
     return scope.catboost_class(**hp_space)
