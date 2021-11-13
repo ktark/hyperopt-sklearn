@@ -31,7 +31,7 @@ except ImportError:
 ##########################################
 @scope.define
 def catboost_class(*args, **kwargs):
-    return catboost.CatBoostClassifier(*args, **kwargs)
+    return catboost.CatBoostClassifier(*args, **kwargs, silent=True)
 
 ##########################################
 ##==== Wrappers for sklearn modules ====##
