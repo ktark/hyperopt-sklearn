@@ -33,6 +33,20 @@ except ImportError:
 def catboost_class(*args, **kwargs):
     return catboost.CatBoostClassifier(*args, **kwargs, silent=True)
 
+
+##########################################
+##====    Newly added classifiers   ====##
+##########################################
+
+@scope.define
+def sklearn_logit(*args, **kwargs):
+  return sklearn.linear_model.LogisticRegression(*args, **kwargs)
+
+
+@scope.define
+def sklearn_MLPClassifier(*args, **kwargs):
+  return sklearn.neural_network.MLPClassifier(*args, **kwargs)
+
 ##########################################
 ##==== Wrappers for sklearn modules ====##
 ##########################################
@@ -1101,6 +1115,219 @@ def decision_tree(name,
         random_state=_random_state(_name('rstate'), random_state),
         )
     return rval
+
+
+##############################################
+##==== Logistic Regression search space ====##
+##############################################
+def _logit_max_iter(name):
+    return hp.qloguniform(name, np.log(1e2), np.log(1e5), 1)
+
+
+def _logit_solver_penalty_dual(name):
+    """
+    """
+    return hp.choice(name, [
+        ('newton-cg', 'l2', False),
+        ('newton-cg', 'none', False),
+        ('lbfgs', 'l2', False),
+        ('lbfgs', 'none', False),
+        ('liblinear', 'l1', False),
+        ('liblinear', 'l2', True),
+        ('liblinear', 'l2', False),
+        ('sag', 'l2', False),
+        ('sag', 'none', False),
+        ('saga', 'elasticnet', False),
+        ('saga', 'l1', False),
+        ('saga', 'l2', False),
+        ('saga', 'none', False),
+    ])
+
+
+def _logit_l1_ratio(name, penalty):
+  if penalty == 'elasticnet':
+    return None
+  else:
+    return hp.uniform(name, 0, 1)
+
+
+def _logit_hp_space(
+    name_func,
+    penalty=None,
+    dual=None,
+    tol=None,
+    C=None,
+    fit_intercept=True,
+    intercept_scaling=1.,
+    class_weight='balanced',
+    random_state=None,
+    solver=None,
+    max_iter=None,
+    multi_class='auto',
+    verbose=0,
+    warm_start=False,
+    l1_ratio=None
+    ):
+  """
+  Generate Logistic Regression search space
+  """
+
+  solver_penalty_dual = _logit_solver_penalty_dual(name_func('solver_penalty_dual'))
+
+  hp_space = dict(
+      penalty=solver_penalty_dual[1] if penalty is None else penalty,
+      tol=_svm_tol(name_func('tol')) if tol is None else tol,
+      dual=solver_penalty_dual[2] if dual is None else dual,
+      C=_svm_C(name_func('C')) if C is None else C,
+      fit_intercept=fit_intercept,
+      intercept_scaling=_svm_int_scaling(name_func('intscaling')) if intercept_scaling is None else intercept_scaling,
+      class_weight=class_weight,
+      random_state=_random_state(name_func('rstate'), random_state),
+      solver=solver_penalty_dual[0] if solver is None else solver,
+      max_iter=_logit_max_iter(name_func('maxiter')) if max_iter is None else max_iter,
+      multi_class=multi_class,
+      verbose=verbose,
+      warm_start=warm_start,
+      l1_ratio=_logit_l1_ratio(name_func('l1_ration'), solver_penalty_dual[1])
+  )
+  return hp_space
+
+
+#############################################
+##==== Logistic Regression constructor ====##
+#############################################
+def logit(name, **kwargs):
+  """
+  Return a pyll graph with hyperparamters that will construct
+  a sklearn.linear_model.LogisticRegression model.
+  """
+  def _name(msg):
+    return '%s.%s_%s' % (name, 'logit', msg)
+
+  hp_space = _logit_hp_space(_name, **kwargs)
+  return scope.sklearn_logit(**hp_space)
+
+
+#########################################
+##==== MLP Classifier search space ====##
+#########################################
+def _mlp_hidden_layer_sizes(name):
+  return hp.choice(name, [
+      (10,),
+      (30,),
+      (50,),
+      (100,),
+      (10, 10),
+      (30, 30),
+      (50, 50),
+      (100, 100)
+  ])
+
+
+def _mlp_activation(name):
+  return hp.pchoice(name, [
+      (0.7, 'relu'),
+      (0.2, 'tanh'),
+      (0.05, 'logistic'),
+      (0.05, 'identity')
+  ])
+
+
+def _mlp_solver(name):
+  return hp.choice(name, ['lbfgs', 'sgd', 'adam'])
+
+
+def _mlp_batch_size(name):
+  return hp.choice(name, [2**3, 2**4, 2**5, 2**6, 2**7])
+
+
+def _mlp_learning_rate(name):
+  return hp.pchoice(name, [
+      (0.5, 'adaptive'),
+      (0.3, 'invscaling'),
+      (0.2, 'constant')
+  ])
+
+
+def _mlp_learning_rate_init(name):
+  return hp.loguniform(name, np.log(1e-1), np.log(1e-4))
+
+
+def _mlp_max_iter(name):
+  return scope.int(hp.qloguniform(name, np.log(1e1), np.log(1e3), 1))
+
+
+def _mlp_hp_space(
+    name_func,
+    hidden_layer_sizes=None,
+    activation=None,
+    solver=None,
+    alpha=None,
+    batch_size=None,
+    learning_rate=None,
+    learning_rate_init=None,
+    power_t=0.5,
+    max_iter=None,
+    shuffle=None,
+    random_state=None,
+    tol=None,
+    verbose=False,
+    warm_start=False,
+    momentum=0.9,
+    nesterovs_momentum=None,
+    early_stopping=None,
+    validation_fraction=0.1,
+    beta_1=0.9,
+    beta_2=0.999,
+    epsilon=1e-8,
+    n_iter_no_change=10,
+    max_fun=15000
+    ):
+  """
+  Generate MLP Classifier search space
+  """
+  hp_space = dict(
+      hidden_layer_sizes=_mlp_hidden_layer_sizes(name_func('hidden_layer_sizes')) if hidden_layer_sizes is None else hidden_layer_sizes,
+      activation=_mlp_activation(name_func('activation')) if activation is None else activation,
+      solver=_mlp_solver(name_func('solver')) if solver is None else solver,
+      alpha=_svm_C(name_func('alpha')) if alpha is None else alpha,
+      batch_size=_mlp_batch_size(name_func('batch_size')) if batch_size is None else batch_size,
+      learning_rate=_mlp_learning_rate(name_func('lr')) if learning_rate is None else learning_rate,
+      learning_rate_init=_mlp_learning_rate_init(name_func('lr_init')) if learning_rate_init is None else learning_rate_init,
+      power_t=power_t,
+      max_iter=_mlp_max_iter(name_func('max_iter')) if max_iter is None else max_iter,
+      shuffle=hp_bool(name_func('shuffle')) if shuffle is None else shuffle,
+      random_state=_random_state(name_func('rstate'), random_state),
+      tol=_svm_tol(name_func('tol')) if tol is None else tol,
+      verbose=verbose,
+      warm_start=warm_start,
+      momentum=momentum,
+      nesterovs_momentum=hp_bool(name_func('nesterovs_momentum')) if nesterovs_momentum is None else nesterovs_momentum,
+      early_stopping=hp_bool(name_func('early_stopping')) if early_stopping is None else early_stopping,
+      validation_fraction=validation_fraction,
+      beta_1=beta_1,
+      beta_2=beta_2,
+      epsilon=epsilon,
+      n_iter_no_change=n_iter_no_change,
+      max_fun=max_fun
+  )
+  return hp_space
+
+
+#########################################
+##==== MLP Classifier constructor ====##
+#########################################
+def mlp_classifier(name, **kwargs):
+  """
+  Return a pyll graph with hyperparamters that will construct
+  a sklearn.neural_network.MLPClassifier model.
+  """
+  def _name(msg):
+    return '%s.%s_%s' % (name, 'mlp', msg)
+
+  hp_space = _mlp_hp_space(_name, **kwargs)
+  return scope.sklearn_MLPClassifier(**hp_space)
+
 
 ###############################
 ##==== Lasso constructor ====##
