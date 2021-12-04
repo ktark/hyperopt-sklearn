@@ -2107,10 +2107,7 @@ def one_hot_encoder(name,
                     categorical_features=None,
                     dtype=None):
     rval = scope.sklearn_OneHotEncoder(
-        n_values='auto' if n_values is None else n_values,
-        categorical_features=('all'
-                              if categorical_features is None
-                              else categorical_features),
+        categories='auto' if n_values is None else n_values,
         dtype=np.float if dtype is None else dtype,
     )
     return rval
