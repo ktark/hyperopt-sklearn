@@ -1250,7 +1250,7 @@ def _mlp_learning_rate(name):
 
 
 def _mlp_learning_rate_init(name):
-  return hp.loguniform(name, np.log(1e-1), np.log(1e-4))
+  return hp.loguniform(name, np.log(1e-5), np.log(1e-1))
 
 
 def _mlp_max_iter(name):
